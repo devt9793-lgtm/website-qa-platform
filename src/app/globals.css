@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand: #4361ee;
+  --brand-dim: #3451d1;
+  --surface: #111520;
+  --surface-2: #161c2d;
+  --border: rgba(255,255,255,0.08);
+  --text-muted: #8892a4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Score ring animation */
+@keyframes score-fill {
+  from { stroke-dashoffset: 283; }
+}
+
+.score-ring {
+  animation: score-fill 1s ease-out forwards;
+}
+
+/* Subtle grid background */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(67, 97, 238, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(67, 97, 238, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* Severity badges */
+.badge-critical { @apply bg-red-500/15 text-red-400 border border-red-500/25; }
+.badge-high     { @apply bg-orange-500/15 text-orange-400 border border-orange-500/25; }
+.badge-medium   { @apply bg-yellow-500/15 text-yellow-400 border border-yellow-500/25; }
+.badge-low      { @apply bg-blue-500/15 text-blue-400 border border-blue-500/25; }
+
+/* Glassmorphism card */
+.glass {
+  background: rgba(17, 21, 32, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.07);
+}
+
+/* Progress bar */
+@keyframes progress-shine {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.progress-animated {
+  background: linear-gradient(90deg, var(--brand) 0%, #7b89f5 50%, var(--brand) 100%);
+  background-size: 200% auto;
+  animation: progress-shine 2s linear infinite;
+}
