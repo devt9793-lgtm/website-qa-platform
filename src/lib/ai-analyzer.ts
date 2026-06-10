@@ -1,14 +1,15 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { CrawlSummary, AuditFinding } from '@/types'
 
-const client = new Anthropic()
-
 export async function analyzeWithAI(
   crawl: CrawlSummary,
-  staticFindings: AuditFinding[]
+  staticFindings: AuditFinding[],
+  anthropicKey: string
 ): Promise<{ enrichedFindings: AuditFinding[]; summary: string; score: number }> {
 
-  // Build a compact summary for AI
+  // Initialise client with the user-supplied key — never stored
+  const client = new Anthropic({ apiKey: anthropicKey })
+
   const pagesDigest = crawl.pages.slice(0, 10).map(p => ({
     url: p.url,
     status: p.statusCode,
@@ -46,15 +47,15 @@ BROKEN PAGE CODES: ${crawl.brokenPages.join(', ') || 'None'}
 
 Your task:
 1. Review all findings and page data
-2. Identify any ADDITIONAL issues not caught by static checks (e.g. poor content quality, UX issues, SEO strategy gaps, technical architecture concerns)
+2. Identify any ADDITIONAL issues not caught by static checks
 3. Provide business impact context for critical findings
 4. Generate a professional executive summary (2-3 paragraphs)
-5. Calculate an overall quality score 0-100 (100 = perfect)
+5. Calculate an overall quality score 0-100
 
 Scoring guide:
 - Start at 100
 - CRITICAL issue: -15 each
-- HIGH issue: -8 each  
+- HIGH issue: -8 each
 - MEDIUM issue: -4 each
 - LOW issue: -1 each
 - Bonus: SSL everywhere (+5), fast load times (+3), good SEO signals (+3)
@@ -85,31 +86,24 @@ Respond ONLY with valid JSON in this exact format:
   })
 
   const text = response.content[0].type === 'text' ? response.content[0].text : ''
-  
-  // Strip markdown fences if present
   const clean = text.replace(/```json\n?|\n?```/g, '').trim()
-  
+
   let parsed: { score: number; summary: string; additionalFindings: AuditFinding[] }
   try {
     parsed = JSON.parse(clean)
   } catch {
-    // Fallback if JSON parse fails
     return {
       enrichedFindings: staticFindings,
       summary: 'AI analysis completed. See detailed findings below.',
-      score: Math.max(0, 100 - staticFindings.filter(f => f.severity === 'CRITICAL').length * 15
+      score: Math.max(0, 100
+        - staticFindings.filter(f => f.severity === 'CRITICAL').length * 15
         - staticFindings.filter(f => f.severity === 'HIGH').length * 8
         - staticFindings.filter(f => f.severity === 'MEDIUM').length * 4),
     }
   }
 
-  const allFindings = [
-    ...staticFindings,
-    ...(parsed.additionalFindings || []),
-  ]
-
   return {
-    enrichedFindings: allFindings,
+    enrichedFindings: [...staticFindings, ...(parsed.additionalFindings || [])],
     summary: parsed.summary,
     score: Math.max(0, Math.min(100, parsed.score)),
   }
