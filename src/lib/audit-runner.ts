@@ -2,15 +2,14 @@ import { crawlWebsite } from './crawler'
 import { runStaticChecks } from './checks'
 import { analyzeWithAI } from './ai-analyzer'
 import { prisma } from './prisma'
-import type { AuditFinding } from '@/types'
 
 export async function runAudit(
   auditId: string,
   url: string,
+  anthropicKey: string,
   onProgress?: (stage: string, percent: number, message: string) => void
 ): Promise<void> {
   try {
-    // Mark as crawling
     await prisma.audit.update({
       where: { id: auditId },
       data: { status: 'CRAWLING' },
@@ -18,7 +17,6 @@ export async function runAudit(
 
     onProgress?.('crawling', 5, 'Starting website crawl...')
 
-    // Crawl
     const crawl = await crawlWebsite(url, 20, (crawled, total, currentUrl) => {
       const pct = Math.round((crawled / Math.max(total, 1)) * 40) + 5
       onProgress?.('crawling', pct, `Crawling: ${currentUrl}`)
@@ -31,23 +29,20 @@ export async function runAudit(
 
     onProgress?.('analyzing', 50, 'Running static checks...')
 
-    // Static checks
     const staticFindings = runStaticChecks(crawl)
 
     onProgress?.('analyzing', 65, 'Running AI analysis...')
 
-    // AI enrichment
-    const { enrichedFindings, summary, score } = await analyzeWithAI(crawl, staticFindings)
+    // Pass the key through to AI analyzer — never persisted
+    const { enrichedFindings, summary, score } = await analyzeWithAI(crawl, staticFindings, anthropicKey)
 
     onProgress?.('analyzing', 90, 'Saving report...')
 
-    // Count by severity
     const criticalCount = enrichedFindings.filter(f => f.severity === 'CRITICAL').length
-    const highCount = enrichedFindings.filter(f => f.severity === 'HIGH').length
-    const mediumCount = enrichedFindings.filter(f => f.severity === 'MEDIUM').length
-    const lowCount = enrichedFindings.filter(f => f.severity === 'LOW').length
+    const highCount     = enrichedFindings.filter(f => f.severity === 'HIGH').length
+    const mediumCount   = enrichedFindings.filter(f => f.severity === 'MEDIUM').length
+    const lowCount      = enrichedFindings.filter(f => f.severity === 'LOW').length
 
-    // Save findings
     await prisma.finding.createMany({
       data: enrichedFindings.map(f => ({
         auditId,
@@ -63,7 +58,6 @@ export async function runAudit(
       })),
     })
 
-    // Update audit as complete
     await prisma.audit.update({
       where: { id: auditId },
       data: {
@@ -87,7 +81,6 @@ export async function runAudit(
       where: { id: auditId },
       data: { status: 'FAILED' },
     }).catch(() => {})
-    onProgress?.('failed', 0, `Audit failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     throw error
   }
 }
