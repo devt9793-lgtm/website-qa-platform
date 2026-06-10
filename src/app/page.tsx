@@ -3,19 +3,29 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Shield, Zap, Search, Globe, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { Shield, Zap, Search, Globe, CheckCircle2, Key } from 'lucide-react'
 import { useSession, signIn } from 'next-auth/react'
+import { useApiKeys } from '@/lib/api-keys-context'
+import { ApiKeysModal } from '@/components/ui/ApiKeysModal'
 
 export default function HomePage() {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showKeys, setShowKeys] = useState(false)
   const router = useRouter()
   const { data: session } = useSession()
+  const { keys, hasKeys } = useApiKeys()
 
   async function handleAudit(e: React.FormEvent) {
     e.preventDefault()
     if (!url.trim()) return
+
+    if (!hasKeys) {
+      setShowKeys(true)
+      return
+    }
+
     setError('')
     setLoading(true)
 
@@ -25,7 +35,10 @@ export default function HomePage() {
 
       const res = await fetch('/api/audit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-anthropic-key': keys.anthropicKey,
+        },
         body: JSON.stringify({ url: auditUrl }),
       })
 
@@ -45,8 +58,10 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen grid-bg">
+      {showKeys && <ApiKeysModal onClose={() => setShowKeys(false)} />}
+
       {/* Nav */}
-      <nav className="border-b border-white/[0.06] bg-[#0a0d14]/80 backdrop-blur-xl sticky top-0 z-50">
+      <nav className="border-b border-white/[0.06] bg-[#0a0d14]/80 backdrop-blur-xl sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
@@ -54,10 +69,20 @@ export default function HomePage() {
             </div>
             <span className="font-semibold text-white">SiteAudit</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowKeys(true)}
+              className={`flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg border transition-colors ${
+                hasKeys
+                  ? 'border-green-500/30 text-green-400 bg-green-500/10'
+                  : 'border-white/10 text-white/50 hover:text-white hover:border-white/20'
+              }`}
+            >
+              <Key className="w-3.5 h-3.5" />
+              {hasKeys ? 'API Key Set' : 'Add API Key'}
+            </button>
             {session ? (
-              <Link href="/dashboard"
-                className="text-sm text-white/70 hover:text-white transition-colors">
+              <Link href="/dashboard" className="text-sm text-white/70 hover:text-white transition-colors">
                 Dashboard
               </Link>
             ) : (
@@ -66,7 +91,8 @@ export default function HomePage() {
                 Sign In
               </button>
             )}
-            <button onClick={() => session ? router.push('/dashboard') : signIn('google', { callbackUrl: '/dashboard' })}
+            <button
+              onClick={() => session ? router.push('/dashboard') : signIn('google', { callbackUrl: '/dashboard' })}
               className="text-sm px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white font-medium transition-colors">
               Get Started
             </button>
@@ -88,8 +114,21 @@ export default function HomePage() {
 
         <p className="text-lg text-white/50 max-w-2xl mx-auto mb-12 leading-relaxed">
           Comprehensive QA audits powered by Anthropic AI. Detect broken pages, SEO gaps,
-          accessibility violations, security issues, and performance bottlenecks — with actionable fixes.
+          accessibility violations, security issues, and performance bottlenecks.
         </p>
+
+        {/* API key prompt */}
+        {!hasKeys && (
+          <div className="max-w-2xl mx-auto mb-4">
+            <button
+              onClick={() => setShowKeys(true)}
+              className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm hover:bg-yellow-500/15 transition-colors"
+            >
+              <Key className="w-4 h-4" />
+              Add your Anthropic API key to get started
+            </button>
+          </div>
+        )}
 
         {/* URL Input */}
         <form onSubmit={handleAudit} className="max-w-2xl mx-auto">
@@ -111,55 +150,34 @@ export default function HomePage() {
               className="flex items-center gap-2 px-6 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors whitespace-nowrap text-sm"
             >
               {loading ? (
-                <>
-                  <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                  Starting...
-                </>
+                <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Starting...</>
               ) : (
-                <>
-                  <Search className="w-4 h-4" />
-                  Run Audit
-                </>
+                <><Search className="w-4 h-4" /> Run Audit</>
               )}
             </button>
           </div>
           {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
-          <p className="mt-3 text-xs text-white/25">Free to try. No account required to run an audit.</p>
+          <p className="mt-3 text-xs text-white/25">Your API key stays in your browser — never stored on our servers.</p>
         </form>
       </section>
 
-      {/* Features grid */}
+      {/* Features */}
       <section className="max-w-6xl mx-auto px-6 pb-24">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {[
-            {
-              icon: <Search className="w-5 h-5 text-brand-500" />,
-              title: 'Deep Crawl',
-              desc: 'Analyzes up to 20 pages, checking every link, image, and resource for issues.',
-            },
-            {
-              icon: <Shield className="w-5 h-5 text-brand-500" />,
-              title: '9 Audit Categories',
-              desc: 'SEO, accessibility, performance, security, content, navigation, and more.',
-            },
-            {
-              icon: <Zap className="w-5 h-5 text-brand-500" />,
-              title: 'AI-Powered Fixes',
-              desc: 'Every issue comes with an AI-generated explanation and implementation guide.',
-            },
+            { icon: <Search className="w-5 h-5 text-brand-500" />, title: 'Deep Crawl', desc: 'Analyzes up to 20 pages, checking every link, image, and resource.' },
+            { icon: <Shield className="w-5 h-5 text-brand-500" />, title: '9 Audit Categories', desc: 'SEO, accessibility, performance, security, content, navigation, and more.' },
+            { icon: <Key className="w-5 h-5 text-brand-500" />, title: 'Your Key, Your Data', desc: 'API key stored only in your browser session. Never touches our database.' },
           ].map(f => (
             <div key={f.title} className="p-6 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-brand-500/20 transition-colors">
-              <div className="w-10 h-10 rounded-lg bg-brand-500/10 flex items-center justify-center mb-4">
-                {f.icon}
-              </div>
+              <div className="w-10 h-10 rounded-lg bg-brand-500/10 flex items-center justify-center mb-4">{f.icon}</div>
               <h3 className="font-semibold text-white mb-2">{f.title}</h3>
               <p className="text-sm text-white/45 leading-relaxed">{f.desc}</p>
             </div>
           ))}
         </div>
 
-        {/* Checklist preview */}
-        <div className="mt-8 p-8 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+        <div className="p-8 rounded-xl bg-white/[0.02] border border-white/[0.06]">
           <h2 className="text-lg font-semibold text-white mb-6">Everything we check</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {[
