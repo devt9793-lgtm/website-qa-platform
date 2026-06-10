@@ -9,6 +9,14 @@ const schema = z.object({
 })
 
 export async function POST(req: NextRequest) {
+  const anthropicKey = req.headers.get('x-anthropic-key')
+  if (!anthropicKey) {
+    return NextResponse.json(
+      { error: 'Anthropic API key is required. Please add it via the API Keys button.' },
+      { status: 401 }
+    )
+  }
+
   const session = await auth()
   const body = await req.json()
 
@@ -18,10 +26,8 @@ export async function POST(req: NextRequest) {
   }
 
   let { url } = parsed.data
-  // Ensure https
   if (!url.startsWith('http')) url = `https://${url}`
 
-  // Create audit record
   const audit = await prisma.audit.create({
     data: {
       url,
@@ -30,8 +36,7 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  // Run audit in background (fire and forget)
-  runAudit(audit.id, url).catch(console.error)
+  runAudit(audit.id, url, anthropicKey).catch(console.error)
 
   return NextResponse.json({ auditId: audit.id }, { status: 201 })
 }
