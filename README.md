@@ -12,7 +12,6 @@ A production-ready AI-powered website quality assurance platform built with Next
 - **Audit dashboard** — Full history, filtering, and management
 - **Export** — CSV and JSON export for all findings
 - **Auth** — Google OAuth via NextAuth v5
-
 ---
 
 ## Quick Start
