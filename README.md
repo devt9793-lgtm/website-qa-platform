@@ -32,7 +32,6 @@ cp .env.example .env.local
 ```
 
 Fill in `.env.local`:
-
 | Variable | Description |
 |----------|-------------|
 | `DATABASE_URL` | PostgreSQL connection string |
