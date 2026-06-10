@@ -3,12 +3,4 @@
   "buildCommand": "prisma generate && next build",
   "installCommand": "npm install",
   "outputDirectory": ".next",
-  "env": {
-    "DATABASE_URL": "@database-url",
-    "AUTH_SECRET": "@auth-secret",
-    "AUTH_GOOGLE_ID": "@auth-google-id",
-    "AUTH_GOOGLE_SECRET": "@auth-google-secret",
-    "ANTHROPIC_API_KEY": "@anthropic-api-key",
-    "NEXT_PUBLIC_APP_URL": "@next-public-app-url"
-  }
 }
