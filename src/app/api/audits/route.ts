@@ -9,7 +9,6 @@ const schema = z.object({
 })
 
 export async function POST(req: NextRequest) {
-  // Get API key from header (set by frontend, never stored in DB)
   const anthropicKey = req.headers.get('x-anthropic-key')
   if (!anthropicKey) {
     return NextResponse.json(
@@ -37,7 +36,6 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  // Pass the API key directly to the runner — never stored
   runAudit(audit.id, url, anthropicKey).catch(console.error)
 
   return NextResponse.json({ auditId: audit.id }, { status: 201 })
