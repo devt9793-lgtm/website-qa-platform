@@ -17,7 +17,7 @@ export async function runAudit(
 
     onProgress?.('crawling', 5, 'Starting website crawl...')
 
-    const crawl = await crawlWebsite(url, 20, (crawled, total, currentUrl) => {
+    const crawl = await crawlWebsite(url, 3, (crawled, total, currentUrl) => {
       const pct = Math.round((crawled / Math.max(total, 1)) * 40) + 5
       onProgress?.('crawling', pct, `Crawling: ${currentUrl}`)
     })
