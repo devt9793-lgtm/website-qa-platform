@@ -13,22 +13,27 @@ export async function POST(
     return NextResponse.json({ error: 'API key required' }, { status: 401 })
   }
 
-  // Fetch the audit record to get the URL
   const audit = await prisma.audit.findUnique({
     where: { id: params.id },
-    select: { id: true, url: true, status: true }
   })
 
+  console.log('Audit fetched:', JSON.stringify(audit))
+
   if (!audit) {
-    return NextResponse.json({ error: 'Audit not found' }, { status: 404 })
+    return NextResponse.json({ error: `Audit not found: ${params.id}` }, { status: 404 })
   }
 
-  if (!audit.url) {
-    return NextResponse.json({ error: 'Invalid URL' }, { status: 400 })
+  const auditUrl = audit.url
+  console.log('Audit URL:', auditUrl, 'Type:', typeof auditUrl)
+
+  if (!auditUrl || auditUrl === 'undefined' || auditUrl === 'null') {
+    return NextResponse.json({ error: `Bad URL in DB: "${auditUrl}"` }, { status: 400 })
   }
+
+  const finalUrl = auditUrl.startsWith('http') ? auditUrl : `https://${auditUrl}`
 
   try {
-    await runAudit(audit.id, audit.url, anthropicKey)
+    await runAudit(audit.id, finalUrl, anthropicKey)
     return NextResponse.json({ success: true })
   } catch (error) {
     return NextResponse.json(
