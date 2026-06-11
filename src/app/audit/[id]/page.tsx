@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { Suspense, useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { Shield, CheckCircle2, XCircle, Loader2, ArrowRight, Globe } from 'lucide-react'
 import Link from 'next/link'
@@ -13,14 +13,7 @@ interface AuditPollData {
   score?: number
 }
 
-const STAGES = [
-  { key: 'PENDING',   label: 'Initializing',       pct: 5   },
-  { key: 'CRAWLING',  label: 'Crawling website',    pct: 45  },
-  { key: 'ANALYZING', label: 'AI analysis',         pct: 80  },
-  { key: 'COMPLETE',  label: 'Audit complete',      pct: 100 },
-]
-
-export default function AuditProgressPage() {
+function AuditProgressContent() {
   const { id } = useParams<{ id: string }>()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -36,7 +29,6 @@ export default function AuditProgressPage() {
   const crawlingRef = useRef(false)
   const keyRef = useRef('')
 
-  // ── Orchestrate batch crawl from frontend ─────────────────────────────
   const runBatchCrawl = useCallback(async (auditKey: string) => {
     if (crawlingRef.current) return
     crawlingRef.current = true
@@ -72,7 +64,6 @@ export default function AuditProgressPage() {
           setStatusMsg(`Crawled ${result.crawledPages} pages, ${result.remaining} remaining...`)
         }
 
-        // Small delay between batches
         if (!done) await new Promise(r => setTimeout(r, 500))
 
       } catch {
@@ -82,7 +73,6 @@ export default function AuditProgressPage() {
       }
     }
 
-    // ── All pages crawled — now run analysis ──────────────────────────
     setStage('analyzing')
     setStatusMsg('Running AI analysis...')
 
@@ -109,14 +99,12 @@ export default function AuditProgressPage() {
     }
   }, [id, router])
 
-  // Start on mount
   useEffect(() => {
     const key = searchParams.get('key')
     if (!key || !id) return
     runBatchCrawl(key)
   }, [id, searchParams, runBatchCrawl])
 
-  // Poll DB status for display
   const pollStatus = useCallback(async () => {
     try {
       const res = await fetch(`/api/audit/${id}`)
@@ -137,17 +125,16 @@ export default function AuditProgressPage() {
     return () => clearInterval(timer)
   }, [])
 
-  const currentStageIdx = ['idle', 'crawling', 'analyzing', 'complete', 'failed'].indexOf(stage)
   const displayStages = [
     { key: 'crawling',  label: 'Crawling website', pct: 45 },
     { key: 'analyzing', label: 'AI analysis',      pct: 80 },
     { key: 'complete',  label: 'Audit complete',   pct: 100 },
   ]
 
-  const pct = stage === 'idle' ? 5 :
-              stage === 'crawling' ? Math.min(44, 5 + (crawledPages * 2)) :
+  const pct = stage === 'idle'      ? 5 :
+              stage === 'crawling'  ? Math.min(44, 5 + (crawledPages * 2)) :
               stage === 'analyzing' ? 80 :
-              stage === 'complete' ? 100 : 0
+              stage === 'complete'  ? 100 : 0
 
   const fmtElapsed = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`
 
@@ -166,7 +153,6 @@ export default function AuditProgressPage() {
         <div className="w-full max-w-xl">
           <div className="bg-[#111520] border border-white/[0.07] rounded-2xl p-8">
 
-            {/* Status icon */}
             <div className="flex justify-center mb-6">
               {stage === 'complete' ? (
                 <div className="w-16 h-16 rounded-full bg-green-500/15 flex items-center justify-center">
@@ -190,7 +176,6 @@ export default function AuditProgressPage() {
             <p className="text-sm text-white/40 text-center mb-2 truncate">{data?.url ?? ''}</p>
             <p className="text-xs text-white/30 text-center mb-6">{statusMsg}</p>
 
-            {/* Progress bar */}
             <div className="mb-6">
               <div className="flex justify-between text-xs text-white/40 mb-2">
                 <span>{statusMsg}</span>
@@ -207,13 +192,11 @@ export default function AuditProgressPage() {
               </div>
             </div>
 
-            {/* Stage list */}
             <div className="space-y-3 mb-6">
               {displayStages.map((s) => {
                 const done   = (stage === 'complete') ||
                                (s.key === 'crawling' && ['analyzing', 'complete'].includes(stage))
                 const active = s.key === stage
-
                 return (
                   <div key={s.key} className="flex items-center gap-3">
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
@@ -237,7 +220,6 @@ export default function AuditProgressPage() {
               })}
             </div>
 
-            {/* Sitemap info */}
             {sitemapCount !== null && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-brand-500/[0.06] border border-brand-500/15 mb-4">
                 <Globe className="w-3.5 h-3.5 text-brand-500 flex-shrink-0" />
@@ -247,7 +229,6 @@ export default function AuditProgressPage() {
               </div>
             )}
 
-            {/* Footer */}
             <div className="flex justify-between text-xs text-white/25 pt-4 border-t border-white/[0.06]">
               <span>Elapsed: {fmtElapsed}</span>
               <span>{crawledPages} pages crawled</span>
@@ -269,5 +250,17 @@ export default function AuditProgressPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AuditProgressPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0a0d14] flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-brand-500/30 border-t-brand-500 animate-spin" />
+      </div>
+    }>
+      <AuditProgressContent />
+    </Suspense>
   )
 }
