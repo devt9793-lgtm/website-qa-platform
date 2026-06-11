@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runAudit } from '@/lib/audit-runner'
+import { prisma } from '@/lib/prisma'
 
 export const maxDuration = 300
 
@@ -12,8 +13,22 @@ export async function POST(
     return NextResponse.json({ error: 'API key required' }, { status: 401 })
   }
 
+  // Fetch the audit record to get the URL
+  const audit = await prisma.audit.findUnique({
+    where: { id: params.id },
+    select: { id: true, url: true, status: true }
+  })
+
+  if (!audit) {
+    return NextResponse.json({ error: 'Audit not found' }, { status: 404 })
+  }
+
+  if (!audit.url) {
+    return NextResponse.json({ error: 'Invalid URL' }, { status: 400 })
+  }
+
   try {
-    await runAudit(params.id, undefined as any, anthropicKey)
+    await runAudit(audit.id, audit.url, anthropicKey)
     return NextResponse.json({ success: true })
   } catch (error) {
     return NextResponse.json(
