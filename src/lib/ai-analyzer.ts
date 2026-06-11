@@ -1,37 +1,4 @@
-import type { CrawlSummary, AuditFinding } from '@/types'
-
-export async function analyzeWithAI(
-  crawl: CrawlSummary,
-  staticFindings: AuditFinding[],
-  anthropicKey: string
-): Promise<{ enrichedFindings: AuditFinding[]; summary: string; score: number }> {
-
-  const criticalCount = staticFindings.filter(f => f.severity === 'CRITICAL').length
-  const highCount = staticFindings.filter(f => f.severity === 'HIGH').length
-  const mediumCount = staticFindings.filter(f => f.severity === 'MEDIUM').length
-
-  const score = Math.max(0, 100
-    - criticalCount * 15
-    - highCount * 8
-    - mediumCount * 4
-    - staticFindings.filter(f => f.severity === 'LOW').length * 1
-  )
-
-  const summary = `Audit completed for ${crawl.baseUrl}. Crawled ${crawl.totalPages} pages and found ${staticFindings.length} issues — ${criticalCount} critical, ${highCount} high, ${mediumCount} medium. ${
-    criticalCount > 0
-      ? 'Immediate attention required for critical issues.'
-      : highCount > 0
-      ? 'Several high priority issues need attention.'
-      : 'No critical issues found. Review medium and low priority items.'
-  }`
-
-  return {
-    enrichedFindings: staticFindings,
-    summary,
-    score,
-  }
-}
-/*import Anthropic from '@anthropic-ai/sdk'
+import Anthropic from '@anthropic-ai/sdk'
 import type { CrawlSummary, AuditFinding } from '@/types'
 
 export async function analyzeWithAI(
@@ -141,4 +108,40 @@ Respond ONLY with valid JSON in this exact format:
     score: Math.max(0, Math.min(100, parsed.score)),
   }
 }
-*/
+
+/*
+// FREE anthropic
+
+import type { CrawlSummary, AuditFinding } from '@/types'
+
+export async function analyzeWithAI(
+  crawl: CrawlSummary,
+  staticFindings: AuditFinding[],
+  anthropicKey: string
+): Promise<{ enrichedFindings: AuditFinding[]; summary: string; score: number }> {
+
+  const criticalCount = staticFindings.filter(f => f.severity === 'CRITICAL').length
+  const highCount = staticFindings.filter(f => f.severity === 'HIGH').length
+  const mediumCount = staticFindings.filter(f => f.severity === 'MEDIUM').length
+
+  const score = Math.max(0, 100
+    - criticalCount * 15
+    - highCount * 8
+    - mediumCount * 4
+    - staticFindings.filter(f => f.severity === 'LOW').length * 1
+  )
+
+  const summary = `Audit completed for ${crawl.baseUrl}. Crawled ${crawl.totalPages} pages and found ${staticFindings.length} issues — ${criticalCount} critical, ${highCount} high, ${mediumCount} medium. ${
+    criticalCount > 0
+      ? 'Immediate attention required for critical issues.'
+      : highCount > 0
+      ? 'Several high priority issues need attention.'
+      : 'No critical issues found. Review medium and low priority items.'
+  }`
+
+  return {
+    enrichedFindings: staticFindings,
+    summary,
+    score,
+  }
+} */
