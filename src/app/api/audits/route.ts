@@ -7,7 +7,6 @@ export async function GET() {
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-
   const audits = await prisma.audit.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: 'desc' },
