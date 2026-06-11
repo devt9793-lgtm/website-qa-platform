@@ -65,6 +65,10 @@ model Audit {
   highCount     Int         @default(0)
   mediumCount   Int         @default(0)
   lowCount      Int         @default(0)
+  crawlQueue    String?     @db.Text
+  crawlVisited  String?     @db.Text
+  crawlRobots   String?     @db.Text
+  sitemapUrls   String?     @db.Text
   startedAt     DateTime    @default(now())
   completedAt   DateTime?
   createdAt     DateTime    @default(now())
@@ -75,19 +79,19 @@ model Audit {
 }
 
 model Finding {
-  id          String        @id @default(cuid())
-  auditId     String
-  category    String
-  severity    Severity
-  title       String
-  description String        @db.Text
-  url         String?
-  evidence    String?       @db.Text
-  fixGuide    String?       @db.Text
-  complexity  String?
-  businessImpact String?    @db.Text
-  createdAt   DateTime      @default(now())
-  audit       Audit         @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  auditId        String
+  category       String
+  severity       Severity
+  title          String
+  description    String   @db.Text
+  url            String?
+  evidence       String?  @db.Text
+  fixGuide       String?  @db.Text
+  complexity     String?
+  businessImpact String?  @db.Text
+  createdAt      DateTime @default(now())
+  audit          Audit    @relation(fields: [auditId], references: [id], onDelete: Cascade)
 }
 
 model ShareLink {
