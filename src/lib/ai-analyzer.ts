@@ -113,7 +113,7 @@ Respond ONLY with valid JSON in this exact format:
 }`
 
   const response = await client.messages.create({
-    model: 'claude-2.1',
+    model: 'claude-haiku-4-5',
     max_tokens: 4096,
     messages: [{ role: 'user', content: prompt }],
   })
