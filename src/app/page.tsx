@@ -20,11 +20,7 @@ export default function HomePage() {
   async function handleAudit(e: React.FormEvent) {
     e.preventDefault()
     if (!url.trim()) return
-
-    if (!hasKeys) {
-      setShowKeys(true)
-      return
-    }
+    if (!hasKeys) { setShowKeys(true); return }
 
     setError('')
     setLoading(true)
@@ -43,13 +39,10 @@ export default function HomePage() {
       })
 
       const data = await res.json()
-      if (!res.ok) {
-        setError(data.error || 'Failed to start audit')
-        setLoading(false)
-        return
-      }
+      if (!res.ok) { setError(data.error || 'Failed to start audit'); setLoading(false); return }
 
-      router.push(`/audit/${data.auditId}`)
+      // Pass key in URL so progress page can trigger the audit
+      router.push(`/audit/${data.auditId}?key=${encodeURIComponent(keys.anthropicKey)}`)
     } catch {
       setError('Failed to connect. Please try again.')
       setLoading(false)
@@ -60,7 +53,6 @@ export default function HomePage() {
     <div className="min-h-screen grid-bg">
       {showKeys && <ApiKeysModal onClose={() => setShowKeys(false)} />}
 
-      {/* Nav */}
       <nav className="border-b border-white/[0.06] bg-[#0a0d14]/80 backdrop-blur-xl sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -100,7 +92,6 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* Hero */}
       <section className="max-w-4xl mx-auto px-6 pt-24 pb-16 text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-500 text-sm font-medium mb-8">
           <Zap className="w-3.5 h-3.5" />
@@ -117,43 +108,32 @@ export default function HomePage() {
           accessibility violations, security issues, and performance bottlenecks.
         </p>
 
-        {/* API key prompt */}
         {!hasKeys && (
           <div className="max-w-2xl mx-auto mb-4">
-            <button
-              onClick={() => setShowKeys(true)}
-              className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm hover:bg-yellow-500/15 transition-colors"
-            >
+            <button onClick={() => setShowKeys(true)}
+              className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm hover:bg-yellow-500/15 transition-colors">
               <Key className="w-4 h-4" />
               Add your Anthropic API key to get started
             </button>
           </div>
         )}
 
-        {/* URL Input */}
         <form onSubmit={handleAudit} className="max-w-2xl mx-auto">
           <div className="flex gap-3 p-2 rounded-xl bg-white/[0.04] border border-white/10 focus-within:border-brand-500/50 transition-colors">
             <div className="flex items-center pl-3">
               <Globe className="w-5 h-5 text-white/30" />
             </div>
             <input
-              type="text"
-              value={url}
-              onChange={e => setUrl(e.target.value)}
+              type="text" value={url} onChange={e => setUrl(e.target.value)}
               placeholder="https://yourwebsite.com"
               className="flex-1 bg-transparent text-white placeholder-white/25 outline-none text-base py-2"
               disabled={loading}
             />
-            <button
-              type="submit"
-              disabled={loading || !url.trim()}
-              className="flex items-center gap-2 px-6 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors whitespace-nowrap text-sm"
-            >
-              {loading ? (
-                <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Starting...</>
-              ) : (
-                <><Search className="w-4 h-4" /> Run Audit</>
-              )}
+            <button type="submit" disabled={loading || !url.trim()}
+              className="flex items-center gap-2 px-6 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors whitespace-nowrap text-sm">
+              {loading
+                ? <><div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" /> Starting...</>
+                : <><Search className="w-4 h-4" /> Run Audit</>}
             </button>
           </div>
           {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
@@ -161,7 +141,6 @@ export default function HomePage() {
         </form>
       </section>
 
-      {/* Features */}
       <section className="max-w-6xl mx-auto px-6 pb-24">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {[
