@@ -181,3 +181,107 @@ export function runStaticChecks(crawl: CrawlSummary): AuditFinding[] {
 
   return findings
 }
+
+// ─── Extra checks using sitemap / robots / analytics ───────────────────────
+export function runExtraChecks(crawl: any): AuditFinding[] {
+  const findings: AuditFinding[] = []
+
+  // Robots.txt checks
+  if (!crawl.robotsTxt?.exists) {
+    findings.push(finding('SEO', 'MEDIUM', 'Missing robots.txt',
+      'No robots.txt file found at the root of the domain.',
+      `${crawl.baseUrl}/robots.txt`,
+      'HTTP 404 on /robots.txt',
+      'Create a robots.txt file at the root of your domain. At minimum include: User-agent: * Allow: /',
+      'Low', 'Without robots.txt search engines have no directives — can cause unwanted pages to be indexed.'))
+  } else if (!crawl.robotsTxt?.allowsIndexing) {
+    findings.push(finding('SEO', 'CRITICAL', 'robots.txt is blocking all search engines',
+      'The robots.txt contains "Disallow: /" for all user agents, preventing all search engine indexing.',
+      `${crawl.baseUrl}/robots.txt`,
+      'Disallow: / for User-agent: *',
+      'Update robots.txt to allow indexing. Remove or modify the Disallow: / rule.',
+      'Low', 'Your entire website is invisible to search engines. This will destroy organic search traffic.'))
+  }
+
+  if (crawl.robotsTxt?.exists && !crawl.robotsTxt?.hasSitemapRef) {
+    findings.push(finding('SEO', 'LOW', 'robots.txt does not reference sitemap',
+      'No Sitemap: directive found in robots.txt.',
+      `${crawl.baseUrl}/robots.txt`,
+      'No Sitemap: line in robots.txt',
+      'Add "Sitemap: https://yourdomain.com/sitemap.xml" to your robots.txt file.',
+      'Low', 'Helps search engines discover your sitemap faster.'))
+  }
+
+  // Sitemap checks
+  if (!crawl.sitemapUrls || crawl.sitemapUrls.length === 0) {
+    findings.push(finding('SEO', 'HIGH', 'No XML sitemap found',
+      'Could not find a sitemap.xml at common locations.',
+      `${crawl.baseUrl}/sitemap.xml`,
+      'HTTP 404 on /sitemap.xml and /sitemap_index.xml',
+      'Generate and publish an XML sitemap. Submit it to Google Search Console.',
+      'Medium', 'Without a sitemap, search engines may miss pages on your site.'))
+  } else {
+    findings.push(finding('SEO', 'LOW', `Sitemap found with ${crawl.sitemapUrls.length} URLs`,
+      `XML sitemap discovered with ${crawl.sitemapUrls.length} URLs listed.`,
+      `${crawl.baseUrl}/sitemap.xml`,
+      `${crawl.sitemapUrls.length} URLs in sitemap`,
+      'Ensure all important pages are included and submit to Google Search Console.',
+      'Low', 'Good — sitemap helps search engines crawl and index your content.'))
+  }
+
+  // Analytics checks
+  if (!crawl.hasGA4 && !crawl.hasGTM) {
+    findings.push(finding('Site Health', 'HIGH', 'No analytics tracking detected',
+      'No Google Analytics 4 (GA4) or Google Tag Manager (GTM) code found on the homepage.',
+      crawl.baseUrl,
+      'No G- or GTM- tracking IDs found in page source',
+      'Install Google Analytics 4 via Google Tag Manager. Add GTM snippet to <head> and <body>.',
+      'Low', 'Without analytics you have no visibility into traffic, user behaviour, or conversion data.'))
+  } else {
+    if (crawl.hasGA4) {
+      findings.push(finding('Site Health', 'LOW', `GA4 tracking detected`,
+        `Google Analytics 4 found. Tracking IDs: ${crawl.analyticsIds.filter((id: string) => id.startsWith('G-')).join(', ')}`,
+        crawl.baseUrl,
+        `GA4 IDs: ${crawl.analyticsIds.filter((id: string) => id.startsWith('G-')).join(', ')}`,
+        'Verify data is flowing correctly in GA4 dashboard.',
+        'Low', 'Good — GA4 tracking is in place.'))
+    }
+    if (crawl.hasGTM) {
+      findings.push(finding('Site Health', 'LOW', `Google Tag Manager detected`,
+        `GTM container found. IDs: ${crawl.analyticsIds.filter((id: string) => id.startsWith('GTM-')).join(', ')}`,
+        crawl.baseUrl,
+        `GTM IDs: ${crawl.analyticsIds.filter((id: string) => id.startsWith('GTM-')).join(', ')}`,
+        'Audit GTM tags to ensure no duplicate or conflicting tags.',
+        'Low', 'Good — GTM is in place for tag management.'))
+    }
+    if (crawl.hasUA) {
+      findings.push(finding('Site Health', 'HIGH', 'Legacy Universal Analytics (UA) detected',
+        'Old Google Analytics UA tracking code found. UA was sunset in July 2023.',
+        crawl.baseUrl,
+        `UA IDs found: ${crawl.analyticsIds.filter((id: string) => id.startsWith('UA-')).join(', ')}`,
+        'Remove UA tracking code and ensure GA4 is properly configured.',
+        'Low', 'UA stopped processing data in 2023. This code is dead weight and should be removed.'))
+    }
+  }
+
+  return findings
+}
+
+// ─── Checks that work from stored audit DB data ────────────────────────────
+export function runStaticChecksFromData(audit: any): AuditFinding[] {
+  const visited: string[] = JSON.parse(audit.crawlVisited || '[]')
+  // Return minimal findings based on page count
+  const findings: AuditFinding[] = []
+  if (visited.length === 0) {
+    findings.push(finding('Site Health', 'HIGH', 'No pages could be crawled',
+      'The crawler was unable to access any pages on this website.',
+      audit.url, 'Zero pages crawled',
+      'Check the website is publicly accessible and not behind authentication.',
+      'High', 'If users cannot access the site, there may be a server or DNS issue.'))
+  }
+  return findings
+}
+
+export function runExtraChecksFromData(crawl: any): AuditFinding[] {
+  return runExtraChecks(crawl)
+}
