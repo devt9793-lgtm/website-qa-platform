@@ -22,7 +22,7 @@ export function normalizeUrl(url: string, baseUrl: string): string | null {
   } catch { return null }
 }
 
-async function fetchText(url: string, timeoutMs = 12000): Promise<{ text: string; status: number; loadTimeMs: number } | null> {
+async function fetchText(url: string, timeoutMs = 5000): Promise<{ text: string; status: number; loadTimeMs: number } | null> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   const start = Date.now()
