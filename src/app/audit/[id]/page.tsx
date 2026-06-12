@@ -46,7 +46,17 @@ function AuditProgressContent() {
           headers: { 'Content-Type': 'application/json' },
         })
 
+        // if (!res.ok) {
+        //   setStage('failed')
+        //   setStatusMsg('Crawl failed')
+        //   return
+        // }
         if (!res.ok) {
+          if (res.status === 504) {
+            // Timeout — just try again, don't fail
+            await new Promise(r => setTimeout(r, 2000))
+            continue
+          }
           setStage('failed')
           setStatusMsg('Crawl failed')
           return
