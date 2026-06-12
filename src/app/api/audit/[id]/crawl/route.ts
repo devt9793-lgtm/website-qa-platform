@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { crawlPage, normalizeUrl, fetchSitemapUrls, fetchRobotsTxt, isDevUrl } from '@/lib/crawler'
 
-const BATCH_SIZE = 5
+const BATCH_SIZE = 3
 
 export const maxDuration = 30
 
