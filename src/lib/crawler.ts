@@ -230,9 +230,12 @@ export async function crawlWebsite(
   if (!startUrl || startUrl === 'undefined') throw new Error(`Invalid URL: ${startUrl}`)
   if (!startUrl.startsWith('http')) startUrl = `https://${startUrl}`
 
-  const base = new URL(startUrl)
-  const baseUrl = `${base.protocol}//${base.hostname}`
-
+  // const base = new URL(startUrl)
+  // const baseUrl = `${base.protocol}//${base.hostname}`
+const base = new URL(startUrl)
+const baseUrl = `${base.protocol}//${base.hostname}`
+const baseHostNaked = base.hostname.replace(/^www\./, '')
+  
   // Fetch robots.txt and sitemap in parallel
   const [robotsTxt, sitemapUrls] = await Promise.all([
     fetchRobotsTxt(baseUrl),
@@ -245,10 +248,27 @@ export async function crawlWebsite(
   const queue: string[] = [normalizedStart]
 
   // Add sitemap URLs to queue (up to maxPages * 3 candidates)
+  // for (const u of sitemapUrls.slice(0, maxPages * 3)) {
+  //   const n = normalizeUrl(u, baseUrl)
+  //   if (n && !queue.includes(n)) queue.push(n)
+  // }
+
   for (const u of sitemapUrls.slice(0, maxPages * 3)) {
-    const n = normalizeUrl(u, baseUrl)
-    if (n && !queue.includes(n)) queue.push(n)
+  const n = normalizeUrl(u, baseUrl)
+  if (n && !queue.includes(n)) queue.push(n)
+  // Also try with www prefix if not already there
+  if (!n) {
+    try {
+      const parsed = new URL(u)
+      const naked = parsed.hostname.replace(/^www\./, '')
+      if (naked === baseHostNaked) {
+        const fixed = u.replace(parsed.hostname, base.hostname)
+        const nFixed = normalizeUrl(fixed, baseUrl)
+        if (nFixed && !queue.includes(nFixed)) queue.push(nFixed)
+      }
+    } catch {}
   }
+}
 
   const results: PageCrawlResult[] = []
   const brokenPages: number[] = []
