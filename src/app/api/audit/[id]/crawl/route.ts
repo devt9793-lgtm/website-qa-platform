@@ -111,14 +111,28 @@ export async function POST(
     })
 
     // Enqueue new internal links found
+    // for (const link of (page.links || [])) {
+    //   if (link.isInternal) {
+    //     const normalized = normalizeUrl(link.href, baseUrl)
+    //     if (normalized && !visited.includes(normalized) && !queue.includes(normalized) && !batch.includes(normalized)) {
+    //       queue.push(normalized)
+    //     }
+    //   }
+    // }
+    // Enqueue new internal links found — skip URLs with query params
     for (const link of (page.links || [])) {
       if (link.isInternal) {
         const normalized = normalizeUrl(link.href, baseUrl)
         if (normalized && !visited.includes(normalized) && !queue.includes(normalized) && !batch.includes(normalized)) {
+          // Skip URLs with query parameters to avoid tracking/pagination duplicates
+          try {
+            const u = new URL(normalized)
+            if (u.search) continue
+          } catch { continue }
           queue.push(normalized)
         }
       }
-    }
+    }    
   }
 
   // ── Save progress to DB ─────────────────────────────────────────────────
