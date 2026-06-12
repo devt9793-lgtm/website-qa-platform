@@ -11,12 +11,26 @@ export function isDevUrl(url: string): boolean {
   return DEV_URL_PATTERNS.some((p) => p.test(url))
 }
 
+// export function normalizeUrl(url: string, baseUrl: string): string | null {
+//   try {
+//     if (url.startsWith('mailto:') || url.startsWith('tel:') || url.startsWith('javascript:')) return null
+//     const base = new URL(baseUrl)
+//     const resolved = new URL(url, base)
+//     if (resolved.hostname !== base.hostname) return null
+//     resolved.hash = ''
+//     return resolved.href.replace(/\/$/, '') || resolved.href
+//   } catch { return null }
+// }
+
 export function normalizeUrl(url: string, baseUrl: string): string | null {
   try {
     if (url.startsWith('mailto:') || url.startsWith('tel:') || url.startsWith('javascript:')) return null
     const base = new URL(baseUrl)
     const resolved = new URL(url, base)
-    if (resolved.hostname !== base.hostname) return null
+    // Treat www and non-www as same domain
+    const baseHost = base.hostname.replace(/^www\./, '')
+    const resolvedHost = resolved.hostname.replace(/^www\./, '')
+    if (resolvedHost !== baseHost) return null
     resolved.hash = ''
     return resolved.href.replace(/\/$/, '') || resolved.href
   } catch { return null }
